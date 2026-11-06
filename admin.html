@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Invitados - Boda Albanys & Odryn</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-cream: #FCF9F6;
+      --card-bg: #FFFFFF;
+      --rose-accent: #E8B4B8;
+      --rose-light: #FFF5F7;
+      --beige-dark: #A89584;
+      --text-dark: #4A403A;
+      --green-bg: #D4EDDA;
+      --green-text: #155724;
+      --red-bg: #F8D7DA;
+      --red-text: #721C24;
+    }
+    
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Montserrat', sans-serif; background: var(--bg-cream); color: var(--text-dark); padding: 2rem 1rem; }
+    .container { max-width: 1050px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    
+    h1 { color: var(--beige-dark); text-align: center; margin-bottom: 0.5rem; font-weight: 700; }
+    p.subtitle { text-align: center; color: #7A6F68; margin-bottom: 2rem; font-size: 0.9rem; }
+
+    /* ESTADÍSTICAS */
+    .stats { display: flex; gap: 15px; margin-bottom: 2rem; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 180px; background: var(--rose-light); padding: 1.2rem; border-radius: 8px; text-align: center; border: 1px solid var(--rose-accent); }
+    .stat-num { font-size: 2rem; font-weight: bold; color: var(--beige-dark); }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #7A6F68; margin-top: 5px; }
+
+    /* CONTROLES BARRA SUPERIOR */
+    .controls-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1.5rem; }
+    
+    .tabs { display: flex; gap: 8px; background: #F2E4E6; padding: 4px; border-radius: 8px; }
+    .tab-btn { border: none; background: transparent; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: var(--text-dark); transition: all 0.2s; }
+    .tab-btn.active { background: white; color: var(--beige-dark); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+    .action-btns { display: flex; gap: 10px; }
+    .btn { padding: 9px 18px; border-radius: 6px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-add { background: var(--rose-accent); color: white; }
+    .btn-add:hover { background: #d89fa3; }
+    .btn-pdf { background: var(--beige-dark); color: white; }
+    .btn-pdf:hover { background: #948272; }
+
+    /* TABLA DE INVITADOS */
+    .table-responsive { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { padding: 14px 15px; text-align: left; border-bottom: 1px solid #EEE; font-size: 0.9rem; }
+    th { background: var(--rose-accent); color: white; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+    tr:nth-child(even) { background: #FAF6F0; }
+
+    .badge { padding: 5px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-yes { background: var(--green-bg); color: var(--green-text); }
+    .badge-no { background: var(--red-bg); color: var(--red-text); }
+
+    .btn-action { background: none; border: none; cursor: pointer; font-size: 1.1rem; margin-right: 8px; }
+    .btn-edit { color: #2196F3; }
+    .btn-delete { color: #F44336; }
+
+    /* MODAL DE EDICIÓN / AGREGAR */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: white; padding: 2rem; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .modal h3 { margin-bottom: 1.2rem; color: var(--beige-dark); }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; font-weight: 500; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 6px; font-family: inherit; font-size: 0.9rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+    .btn-cancel { background: #DDD; color: #333; }
+
+    /* CONFIGURACIÓN DE IMPRESIÓN PARA EL PDF (AHORA INCLUYE LAS TARJETAS Y OCULTA FILTROS/ACCIONES) */
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; max-width: 100%; padding: 0; }
+      
+      /* Ocultar barra de pestañas, botones y modales, pero DEJAR VISIBLES las estadísticas (.stats) */
+      .controls-bar, .modal-overlay { display: none !important; }
+      
+      /* Ocultar la columna de acciones en la tabla */
+      th:last-child, td:last-child { display: none !important; }
+      
+      h1::after { content: " - Listado de Invitados"; font-size: 1.2rem; }
+      th { background: #E8B4B8 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      tr:nth-child(even) { background: #F9F9F9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Panel de Administración</h1>
+    <p class="subtitle">Boda Albanys & Odryn - Lista de Asistencia</p>
+    
+    <!-- LAS 3 TARJETAS DE ESTADÍSTICAS (AHORA SALEN EN EL PDF) -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-num" id="totalCount">0</div>
+        <div class="stat-label">Registros Totales</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="yesPersonsCount" style="color: #2E7D32;">0</div>
+        <div class="stat-label">Total Personas Que Irán</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="noPersonsCount" style="color: #C62828;">0</div>
+        <div class="stat-label">Total Personas Que No Irán</div>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS DE FILTRO Y ACCIONES -->
+    <div class="controls-bar">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterTab('all', this)">Todos</button>
+        <button class="tab-btn" onclick="filterTab('yes', this)">Sí Asistirán</button>
+        <button class="tab-btn" onclick="filterTab('no', this)">No Asistirán</button>
+      </div>
+
+      <div class="action-btns">
+        <button class="btn btn-add" onclick="openModal()">+ Agregar Invitado</button>
+        <button class="btn btn-pdf" onclick="window.print()">📄 Imprimir / Exportar PDF</button>
+      </div>
+    </div>
+
+    <!-- TABLA DE RESULTADOS -->
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>Nombre Principal</th>
+            <th>Asistencia</th>
+            <th style="width: 110px; text-align: center;">Cantidad</th>
+            <th>Mensaje</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="invitedTable">
+          <tr><td colspan="7" style="text-align:center;">Cargando lista...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL DE CRUD (CREAR / EDITAR CON CANTIDAD) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Agregar Invitado</h3>
+      <input type="hidden" id="editDocId">
+      
+      <div class="form-group">
+        <label>Nombre Completo</label>
+        <input type="text" id="modalName" class="form-control" required placeholder="Nombre del invitado">
+      </div>
+      
+      <div class="form-group">
+        <label>Estado de Asistencia</label>
+        <select id="modalAttending" class="form-control">
+          <option value="¡Sí, con mucho gusto asistiré!">¡Sí, con mucho gusto asistiré!</option>
+          <option value="Lamentablemente no podré asistir">Lamentablemente no podré asistir</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad de Personas (Pases/Cupos)</label>
+        <input type="number" id="modalQuantity" class="form-control" min="1" max="10" value="1">
+      </div>
+      
+      <div class="form-group">
+        <label>Mensaje / Notas</label>
+        <textarea id="modalMessage" class="form-control" rows="3" placeholder="Mensaje u observaciones"></textarea>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-add" id="saveModalBtn" onclick="saveGuest()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONEXIÓN FIRESTORE DATABASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCurEf00lw64HsWjkdOcAeKrlyfHfheBvY",
+      authDomain: "invitaciondigitalao.firebaseapp.com",
+      projectId: "invitaciondigitalao",
+      storageBucket: "invitaciondigitalao.firebasestorage.app",
+      messagingSenderId: "375220563945",
+      appId: "1:375220563945:web:5b7204141b541802dd2578",
+      measurementId: "G-5QDWD4CRF6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allGuests = [];
+    let currentFilter = 'all';
+
+    // Cargar invitados en tiempo real y calcular todos los totales
+    const q = query(collection(db, "confirmaciones"), orderBy("fecha", "desc"));
+    onSnapshot(q, (snapshot) => {
+      allGuests = [];
+      let totalDocs = 0;
+      let totalYesPersons = 0;
+      let totalNoPersons = 0;
+
+      snapshot.forEach((docSnapshot) => {
+        const data = docSnapshot.data();
+        const isYes = data.asistencia.includes("Sí");
+        const cantidad = Number(data.cantidad) || 1;
+
+        if (isYes) {
+          totalYesPersons += cantidad;
+        } else {
+          totalNoPersons += cantidad;
+        }
+        totalDocs++;
+
+        allGuests.push({ id: docSnapshot.id, ...data, isYes, cantidad });
+      });
+
+      document.getElementById('totalCount').innerText = totalDocs;
+      document.getElementById('yesPersonsCount').innerText = totalYesPersons;
+      document.getElementById('noPersonsCount').innerText = totalNoPersons;
+
+      renderTable();
+    });
+
+    // Renderizar la tabla con filtros y cantidades
+    window.renderTable = function() {
+      const tbody = document.getElementById('invitedTable');
+      tbody.innerHTML = '';
+
+      const filtered = allGuests.filter(g => {
+        if (currentFilter === 'yes') return g.isYes;
+        if (currentFilter === 'no') return !g.isYes;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No hay registros en esta categoría.</td></tr>';
+        return;
+      }
+
+      filtered.forEach((guest, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${index + 1}</strong></td>
+          <td><strong>${guest.nombre}</strong></td>
+          <td><span class="badge ${guest.isYes ? 'badge-yes' : 'badge-no'}">${guest.asistencia}</span></td>
+          <td style="text-align: center;"><strong>${guest.cantidad} ${guest.cantidad > 1 ? 'pers.' : 'pers.'}</strong></td>
+          <td>${guest.mensaje || '-'}</td>
+          <td><small>${new Date(guest.fecha).toLocaleString('es-DO')}</small></td>
+          <td>
+            <button class="btn-action btn-edit" title="Editar" onclick="openModal('${guest.id}')">✏️</button>
+            <button class="btn-action btn-delete" title="Eliminar" onclick="deleteGuest('${guest.id}', '${guest.nombre}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    };
+
+    // Cambiar Filtro de Pestañas
+    window.filterTab = function(type, element) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      currentFilter = type;
+      renderTable();
+    };
+
+    // Abrir Modal (Crear o Editar)
+    window.openModal = function(id = null) {
+      const modal = document.getElementById('modalOverlay');
+      const title = document.getElementById('modalTitle');
+      
+      if (id) {
+        const guest = allGuests.find(g => g.id === id);
+        document.getElementById('editDocId').value = guest.id;
+        document.getElementById('modalName').value = guest.nombre;
+        document.getElementById('modalAttending').value = guest.asistencia;
+        document.getElementById('modalQuantity').value = guest.cantidad || 1;
+        document.getElementById('modalMessage').value = guest.mensaje || '';
+        title.innerText = "Editar Invitado";
+      } else {
+        document.getElementById('editDocId').value = '';
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalAttending').value = '¡Sí, con mucho gusto asistiré!';
+        document.getElementById('modalQuantity').value = 1;
+        document.getElementById('modalMessage').value = '';
+        title.innerText = "Agregar Invitado Manualmente";
+      }
+
+      modal.classList.add('active');
+    };
+
+    // Cerrar Modal
+    window.closeModal = function() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    };
+
+    // Guardar (Crear / Editar)
+    window.saveGuest = async function() {
+      const id = document.getElementById('editDocId').value;
+      const nombre = document.getElementById('modalName').value.trim();
+      const asistencia = document.getElementById('modalAttending').value;
+      const cantidad = parseInt(document.getElementById('modalQuantity').value) || 1;
+      const mensaje = document.getElementById('modalMessage').value.trim();
+
+      if (!nombre) {
+        alert("Por favor ingresa un nombre.");
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveModalBtn');
+      saveBtn.disabled = true;
+
+      try {
+        if (id) {
+          await updateDoc(doc(db, "confirmaciones", id), {
+            nombre: nombre,
+            asistencia: asistencia,
+            cantidad: cantidad,
+            mensaje: mensaje
+          });
+        } else {
+          await addDoc(collection(db, "confirmaciones"), {
+            nombre: nombre,
+            asistencia: asistencia,
+            cantidad: cantidad,
+            mensaje: mensaje,
+            fecha: new Date().toISOString()
+          });
+        }
+        closeModal();
+      } catch (error) {
+        console.error("Error al guardar:", error);
+        alert("Ocurrió un error al guardar.");
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
+
+    // Eliminar Invitado
+    window.deleteGuest = async function(id, nombre) {
+      if (confirm(`¿Estás seguro de eliminar a ${nombre} de la lista?`)) {
+        try {
+          await deleteDoc(doc(db, "confirmaciones", id));
+        } catch (error) {
+          console.error("Error al eliminar:", error);
+          alert("Ocurrió un error al eliminar el registro.");
+        }
+      }
+    };
+  </script>
+</body>
+</html>
